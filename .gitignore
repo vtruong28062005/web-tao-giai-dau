@@ -1,0 +1,16 @@
+## .NET Core
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+
+## Database
+*.db
+*.db-shm
+*.db-wal
+tournaments.db*
+
+## Logs
+*.log
