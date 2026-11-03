@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TournaPro - Nền Tảng Quản Lý & Tạo Giải Đấu Thể Thao / Esports</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#090d16',
+                        darkCard: '#131b2e',
+                        primary: '#4f46e5',
+                        accent: '#06b6d4'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Confetti JS -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-[#090d16] text-slate-100 min-h-screen flex flex-col antialiased selection:bg-indigo-600 selection:text-white">
+
+    <!-- Top Navigation Bar -->
+    <header class="glass-nav sticky top-0 z-40 border-b border-slate-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="App.backToTournamentsList()">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                    <i class="fa-solid fa-trophy text-lg"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-black tracking-tight text-white flex items-center gap-1">
+                        Tourna<span class="text-indigo-400">Pro</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 block -mt-1 font-medium tracking-wide">QUẢN LÝ GIẢI ĐẤU CHUYÊN NGHIỆP</span>
+                </div>
+            </div>
+
+            <!-- Header Actions & Auth Status -->
+            <div class="flex items-center gap-3">
+                <!-- Auth Widget: Guest vs Logged In -->
+                <div id="auth-guest-section" class="flex items-center gap-2">
+                    <button onclick="App.openAuthModal('login')" class="px-3.5 py-2 text-xs font-bold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-to-bracket text-indigo-400"></i> Đăng Nhập
+                    </button>
+                    <button onclick="App.openAuthModal('register')" class="hidden sm:inline-flex px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition">
+                        Đăng Ký
+                    </button>
+                </div>
+
+                <div id="auth-user-section" class="hidden flex items-center gap-2.5">
+                    <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700">
+                        <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                            <span id="user-avatar-initial">A</span>
+                        </div>
+                        <div class="text-left hidden sm:block">
+                            <div id="user-display-name" class="text-xs font-bold text-slate-200 leading-none">Admin</div>
+                            <span id="user-role-badge" class="text-[10px] text-emerald-400 font-medium">● Ban Tổ Chức</span>
+                        </div>
+                    </div>
+                    <button onclick="App.handleLogout()" title="Đăng xuất" class="p-2 text-slate-400 hover:text-rose-400 rounded-xl bg-slate-800/60 hover:bg-slate-700 transition text-xs">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+
+                <!-- Primary Create Tournament Button -->
+                <button onclick="App.openCreateTournamentModal()" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                    <i class="fa-solid fa-plus"></i>
+                    <span class="hidden sm:inline">Tạo Giải Đấu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- ============================================================== -->
+        <!-- VIEW 1: TOURNAMENTS LIST & DASHBOARD                           -->
+        <!-- ============================================================== -->
+        <section id="tournaments-list-view">
+            <!-- Dashboard Stats Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-xl border border-indigo-500/20">
+                        <i class="fa-solid fa-sitemap"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-white" id="stat-total-tournaments">0</div>
+                        <div class="text-xs text-slate-400 font-medium">Tổng số giải đấu</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xl border border-emerald-500/20">
+                        <i class="fa-solid fa-bolt animate-pulse"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-emerald-400" id="stat-ongoing-tournaments">0</div>
+                        <div class="text-xs text-slate-400 font-medium">Đang diễn ra</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-xl border border-cyan-500/20">
+                        <i class="fa-solid fa-users"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-white" id="stat-total-teams">0</div>
+                        <div class="text-xs text-slate-400 font-medium">Đội / Tuyển thủ</div>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 rounded-2xl border border-slate-800 flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl border border-amber-500/20">
+                        <i class="fa-solid fa-flag-checkered"></i>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-black text-amber-300" id="stat-total-matches">0</div>
+                        <div class="text-xs text-slate-400 font-medium">Trận đã đấu</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters & Search Toolbar -->
+            <div class="glass-panel p-4 rounded-2xl border border-slate-800 mb-6 space-y-4">
+                <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+                    <!-- Search Input -->
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                        <input type="text" id="search-input" placeholder="Tìm kiếm tên giải đấu, địa điểm..." class="w-full pl-10 pr-4 py-2 bg-slate-900/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-200 placeholder-slate-500 transition">
+                    </div>
+
+                    <!-- Status Filter -->
+                    <div class="w-full md:w-56">
+                        <select id="status-filter" class="w-full px-3 py-2 bg-slate-900/80 border border-slate-700/80 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-slate-200 cursor-pointer">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="0">Sắp diễn ra</option>
+                            <option value="1">Đang diễn ra</option>
+                            <option value="2">Đã kết thúc</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Category Pills Filter -->
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                    <button data-category-filter="Tất cả" class="px-3.5 py-1.5 rounded-lg font-semibold bg-indigo-600 text-white transition whitespace-nowrap">Tất cả</button>
+                    <button data-category-filter="Bóng đá" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">⚽ Bóng đá</button>
+                    <button data-category-filter="Esports" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🎮 Esports</button>
+                    <button data-category-filter="Cầu lông" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🏸 Cầu lông</button>
+                    <button data-category-filter="Bóng rổ" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🏀 Bóng rổ</button>
+                    <button data-category-filter="Bóng bàn" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🏓 Bóng bàn</button>
+                    <button data-category-filter="Bida" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🎱 Bida</button>
+                    <button data-category-filter="Tennis" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">🎾 Tennis</button>
+                    <button data-category-filter="Cờ vua" class="px-3.5 py-1.5 rounded-lg font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 transition whitespace-nowrap">♟️ Cờ vua</button>
+                </div>
+            </div>
+
+            <!-- Tournaments Cards Grid -->
+            <div id="tournaments-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Injected via JavaScript -->
+            </div>
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- VIEW 2: TOURNAMENT DETAIL & BRACKET MANAGEMENT                 -->
+        <!-- ============================================================== -->
+        <section id="tournament-detail-view" class="hidden space-y-6">
+            <!-- Spectator / Viewer Mode Notification Banner -->
+            <div id="viewer-mode-banner" class="hidden p-4 bg-gradient-to-r from-cyan-950/70 via-slate-900 to-indigo-950/70 border border-cyan-500/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-lg border border-cyan-500/30">
+                        <i class="fa-solid fa-eye animate-pulse"></i>
+                    </div>
+                    <div>
+                        <div class="text-xs font-bold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                            <span>Chế Độ Người Xem Công Khai (Spectator Mode)</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 animate-pulse">
+                                ● Trực tiếp
+                            </span>
+                        </div>
+                        <div class="text-xs text-slate-300 mt-0.5">
+                            Bạn đang xem giải đấu qua liên kết chia sẻ. Dữ liệu bảng đấu và kết quả được cập nhật trực tiếp.
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="viewer-refresh-btn" onclick="App.refreshTournamentData()" class="px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrows-rotate"></i> Làm mới
+                    </button>
+                    <button onclick="App.openAuthModal('login')" class="px-3 py-1.5 text-xs font-bold rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 transition">
+                        Đăng nhập ban tổ chức
+                    </button>
+                </div>
+            </div>
+
+            <!-- Breadcrumbs & Quick Back -->
+            <div class="flex items-center justify-between">
+                <button onclick="App.backToTournamentsList()" class="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition group">
+                    <i class="fa-solid fa-arrow-left group-hover:-translate-x-1 transition-transform"></i>
+                    <span>Tất cả giải đấu</span>
+                </button>
+                <div class="flex items-center gap-2">
+                    <!-- Share Button (Always Visible) -->
+                    <button onclick="App.openShareModal()" class="px-3.5 py-1.5 bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/20 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-share-nodes"></i> Chia Sẻ Link Người Xem
+                    </button>
+                    <button onclick="App.exportMatchesToCSV()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/80 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i> Xuất CSV
+                    </button>
+                    <button onclick="window.print()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700/80 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-print text-indigo-400"></i> In Bảng Đấu
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tournament Detail Hero Banner -->
+            <div class="glass-panel p-6 rounded-2xl border border-slate-800 space-y-6 relative overflow-hidden">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="detail-category-badge" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-500/10 text-indigo-300 border border-indigo-500/20"></span>
+                            <span id="detail-format-badge" class="px-3 py-1 text-xs font-bold rounded-lg bg-cyan-500/10 text-cyan-300 border border-cyan-500/20"></span>
+                            <span id="detail-status-badge"></span>
+                        </div>
+                        <h1 id="detail-title" class="text-2xl sm:text-3xl font-black text-white tracking-tight"></h1>
+                        <div class="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-slate-400">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot text-slate-400"></i>
+                                <span id="detail-location"></span>
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar text-slate-400"></i>
+                                <span id="detail-dates"></span>
+                            </span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-tie text-indigo-400"></i>
+                                <span id="detail-organizer">Ban Tổ Chức</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Tournament Management Controls (For Organizers) -->
+                    <div id="organizer-controls" class="flex flex-wrap items-center gap-2">
+                        <button onclick="App.handleGenerateSchedule(false)" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                            <i class="fa-solid fa-diagram-project"></i> Sinh Nhánh Đấu
+                        </button>
+                        <button onclick="App.handleGenerateSchedule(true)" title="Bốc thăm ngẫu nhiên lại cặp đấu" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-shuffle text-indigo-400"></i> Bốc Thăm Lại
+                        </button>
+                        <button onclick="App.openAddTeamModal()" class="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-semibold rounded-xl border border-slate-700 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-user-plus text-cyan-400"></i> Thêm Đội
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prize Pool Alert -->
+                <div id="detail-prizepool-box" class="p-3 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 rounded-xl flex items-center gap-3">
+                    <span class="text-2xl">🏆</span>
+                    <div>
+                        <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wider">Cơ Cấu Giải Thưởng</div>
+                        <div id="detail-prizepool" class="text-xs sm:text-sm text-slate-200 font-medium"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Tabs Navigation -->
+            <div class="border-b border-slate-800 flex items-center gap-1 overflow-x-auto text-sm">
+                <button id="tab-btn-bracket" data-detail-tab="bracket" onclick="App.switchTab('bracket')" class="px-4 py-3 font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-sitemap"></i> Sơ Đồ Nhánh Đấu
+                </button>
+                <button id="tab-btn-matches" data-detail-tab="matches" onclick="App.switchTab('matches')" class="px-4 py-3 font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-regular fa-calendar-days"></i> Lịch Thi Đấu & Tỷ Số
+                </button>
+                <button id="tab-btn-standings" data-detail-tab="standings" onclick="App.switchTab('standings')" class="px-4 py-3 font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-ranking-star"></i> Bảng Xếp Hạng
+                </button>
+                <button id="tab-btn-teams" data-detail-tab="teams" onclick="App.switchTab('teams')" class="px-4 py-3 font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-users"></i> Danh Sách Đội
+                </button>
+                <button id="tab-btn-info" data-detail-tab="info" onclick="App.switchTab('info')" class="px-4 py-3 font-bold border-b-2 transition flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-circle-info"></i> Quy Chế & Điều Lệ
+                </button>
+            </div>
+
+            <!-- Tab Pane 1: Bracket Canvas -->
+            <div id="tab-pane-bracket" class="detail-tab-pane glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="text-xs text-slate-400">
+                        <i class="fa-solid fa-circle-info mr-1 text-indigo-400"></i>
+                        <span id="bracket-instruction-text">Bấm vào thẻ trận đấu bất kỳ để mở bảng <strong>nhập tỷ số</strong> và tự động đẩy đội thắng lên vòng sau.</span>
+                    </div>
+                </div>
+                <div id="bracket-canvas" class="overflow-x-auto">
+                    <!-- Injected Bracket -->
+                </div>
+            </div>
+
+            <!-- Tab Pane 2: Matches List -->
+            <div id="tab-pane-matches" class="detail-tab-pane hidden glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800">
+                <div id="matches-list-container">
+                    <!-- Injected Matches List -->
+                </div>
+            </div>
+
+            <!-- Tab Pane 3: Standings Table -->
+            <div id="tab-pane-standings" class="detail-tab-pane hidden glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Bảng Xếp Hạng Điểm Số</h3>
+                        <p class="text-xs text-slate-400">Tính điểm: Thắng 3 điểm • Hòa 1 điểm • Thua 0 điểm. Xếp theo Điểm &gt; Hiệu số &gt; Bàn thắng.</p>
+                    </div>
+                </div>
+                <div id="standings-container">
+                    <!-- Injected Standings -->
+                </div>
+            </div>
+
+            <!-- Tab Pane 4: Teams Grid -->
+            <div id="tab-pane-teams" class="detail-tab-pane hidden glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-bold text-white">Các Đội & Tuyển Thủ Tham Gia</h3>
+                        <p class="text-xs text-slate-400">Hiện có <span id="teams-count-badge" class="font-bold text-indigo-400"></span></p>
+                    </div>
+                    <button id="add-team-btn" onclick="App.openAddTeamModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20">
+                        <i class="fa-solid fa-plus"></i> Thêm Đội Mới
+                    </button>
+                </div>
+                <div id="teams-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Injected Teams -->
+                </div>
+            </div>
+
+            <!-- Tab Pane 5: Info & Rules -->
+            <div id="tab-pane-info" class="detail-tab-pane hidden glass-panel p-6 rounded-2xl border border-slate-800 space-y-6">
+                <div>
+                    <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-2">Giới Thiệu Giải Đấu</h4>
+                    <p id="info-description" class="text-sm text-slate-300 leading-relaxed whitespace-pre-line"></p>
+                </div>
+                <div class="pt-4 border-t border-slate-800">
+                    <h4 class="text-sm font-bold text-indigo-400 uppercase tracking-wider mb-2">Điều Lệ & Quy Chế Thi Đấu</h4>
+                    <div id="info-rules" class="text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-slate-900/60 p-4 rounded-xl border border-slate-800"></div>
+                </div>
+                <div class="pt-4 border-t border-slate-800">
+                    <h4 class="text-sm font-bold text-amber-400 uppercase tracking-wider mb-2">Cơ Cấu Giải Thưởng</h4>
+                    <div id="info-prizepool" class="text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-amber-500/5 p-4 rounded-xl border border-amber-500/20"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+        <p>TournaPro Tournament Management System &copy; 2026. Hỗ trợ tất cả thể thức Loại trực tiếp, Vòng tròn & Chia bảng.</p>
+    </footer>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: ĐĂNG NHẬP / ĐĂNG KÝ (AUTHENTICATION)                   -->
+    <!-- ============================================================== -->
+    <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl border border-slate-700 p-6 space-y-5 glow-primary">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-shield-halved"></i>
+                    </div>
+                    <h3 id="auth-modal-title" class="text-lg font-bold text-white">Đăng Nhập Tài Khoản</h3>
+                </div>
+                <button onclick="App.closeAuthModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tab Switcher: Login vs Register -->
+            <div class="flex border-b border-slate-800">
+                <button id="auth-tab-login" onclick="App.switchAuthTab('login')" class="flex-1 pb-2 text-xs font-bold text-indigo-400 border-b-2 border-indigo-500">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Đăng Nhập
+                </button>
+                <button id="auth-tab-register" onclick="App.switchAuthTab('register')" class="flex-1 pb-2 text-xs font-semibold text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-user-plus mr-1"></i> Đăng Ký Mới
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="login-form" onsubmit="App.handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Đăng Nhập *</label>
+                    <input type="text" id="login-username" required placeholder="Nhập tên đăng nhập" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Mật Khẩu *</label>
+                    <input type="password" id="login-password" required placeholder="••••••" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="App.closeAuthModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                        Đăng Nhập
+                    </button>
+                </div>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" onsubmit="App.handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Họ Và Tên / Tên Ban Tổ Chức *</label>
+                    <input type="text" id="reg-fullname" required placeholder="Nguyễn Văn A" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Đăng Nhập *</label>
+                    <input type="text" id="reg-username" required placeholder="bandoanthanhnien..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Email</label>
+                    <input type="email" id="reg-email" placeholder="bantocthuc@gmail.com" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Mật Khẩu (Tối thiểu 6 ký tự) *</label>
+                    <input type="password" id="reg-password" required minlength="6" placeholder="••••••" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Vai Trò Tài Khoản</label>
+                    <select id="reg-role" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+                        <option value="Organizer">Ban Tổ Chức (Organizer) - Quản lý giải của mình</option>
+                        <option value="Admin">Quản Trị Viên (Admin) - Toàn quyền hệ thống</option>
+                    </select>
+                </div>
+
+                <div class="pt-2 flex justify-end gap-3">
+                    <button type="button" onclick="App.closeAuthModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                        Đăng Ký Tài Khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: CHIA SẺ LINK NGƯỜI XEM (SHARE LINK MODAL)               -->
+    <!-- ============================================================== -->
+    <div id="share-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-lg rounded-2xl border border-slate-700 p-6 space-y-5 glow-accent">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-600/20 text-cyan-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-white">Chia Sẻ Link Cho Người Xem</h3>
+                        <p class="text-xs text-slate-400">Khán giả mở link này sẽ xem trực tiếp bảng đấu và tỷ số</p>
+                    </div>
+                </div>
+                <button onclick="App.closeShareModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Share Link Box -->
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-300">Đường Dẫn Công Khai (Public Viewer Link)</label>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="share-url-input" readonly class="flex-1 px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-cyan-300 font-mono focus:outline-none focus:border-cyan-500 selection:bg-cyan-700 select-all">
+                    <button onclick="App.copyShareUrl()" class="px-4 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center gap-1.5 shadow-lg shadow-cyan-600/30 whitespace-nowrap">
+                        <i class="fa-regular fa-copy"></i>
+                        <span id="copy-btn-text">Sao Chép</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Features of Spectator Link -->
+            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2 text-xs text-slate-300">
+                <div class="font-bold text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-check text-emerald-400"></i> Người xem khi mở link sẽ được:
+                </div>
+                <ul class="space-y-1.5 pl-5 list-disc text-slate-400">
+                    <li>Xem sơ đồ bảng đấu (Bracket) tương tác và các vòng đấu.</li>
+                    <li>Xem tỷ số trực tiếp (Live Score) và bảng xếp hạng cập nhật thời gian thực.</li>
+                    <li>Xem danh sách đội thi đấu, quy chế và cơ cấu giải thưởng.</li>
+                    <li><strong class="text-slate-300">Hoàn toàn không cần đăng nhập</strong> và không có quyền sửa đổi dữ liệu giải đấu.</li>
+                </ul>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-2 flex justify-between items-center border-t border-slate-800">
+                <button onclick="App.openShareUrlInNewTab()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở thử trong tab mới
+                </button>
+                <button onclick="App.closeShareModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: TẠO GIẢI ĐẤU MỚI                                       -->
+    <!-- ============================================================== -->
+    <div id="create-tournament-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl border border-slate-700 p-6 space-y-5 my-8">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-trophy"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Tạo Giải Đấu Mới</h3>
+                </div>
+                <button onclick="App.closeCreateTournamentModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="create-tournament-form" onsubmit="App.handleCreateTournament(event)" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Giải Đấu *</label>
+                        <input type="text" name="name" required placeholder="Ví dụ: Cúp Bóng Đá Giao Hữu Mùa Hè 2026" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Bộ Môn Thể Thao / Esports *</label>
+                        <select name="category" required class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+                            <option value="Bóng đá">⚽ Bóng đá</option>
+                            <option value="Esports">🎮 Thể thao điện tử (Esports)</option>
+                            <option value="Cầu lông">🏸 Cầu lông</option>
+                            <option value="Bóng rổ">🏀 Bóng rổ</option>
+                            <option value="Bóng bàn">🏓 Bóng bàn</option>
+                            <option value="Bida">🎱 Bida / Snooker</option>
+                            <option value="Tennis">🎾 Tennis</option>
+                            <option value="Cờ vua">♟️ Cờ vua</option>
+                            <option value="Khác">🏆 Khác</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Thể Thức Thi Đấu *</label>
+                        <select name="format" required class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+                            <option value="0">Loại trực tiếp (Single Elimination / Knockout)</option>
+                            <option value="1">Vòng tròn tính điểm (Round Robin)</option>
+                            <option value="2">Chia bảng + Knockout (Group Stage + Knockout)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Số Lượng Đội Tối Đa</label>
+                        <select name="maxTeams" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+                            <option value="4">4 đội</option>
+                            <option value="8" selected>8 đội</option>
+                            <option value="16">16 đội</option>
+                            <option value="32">32 đội</option>
+                            <option value="6">6 đội (Thích hợp Vòng tròn)</option>
+                            <option value="10">10 đội</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Địa Điểm Thi Đấu</label>
+                        <input type="text" name="location" placeholder="Sân vận động, Nhà thi đấu hoặc Online" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Ngày Bắt Đầu</label>
+                        <input type="date" name="startDate" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Ngày Kết Thúc</label>
+                        <input type="date" name="endDate" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Cơ Cấu Giải Thưởng</label>
+                        <input type="text" name="prizePool" placeholder="Ví dụ: Nhất: 20 triệu, Nhì: 10 triệu, Ba: 5 triệu" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Link Ảnh Banner (Tùy chọn)</label>
+                        <input type="url" name="bannerUrl" placeholder="https://..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Quy Chế & Luật Thi Đấu</label>
+                        <textarea name="rules" rows="2" placeholder="Ví dụ: Mỗi hiệp 25 phút, mỗi đội 7 người, hòa đá luân lưu..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white"></textarea>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Mô Tả Thêm</label>
+                        <textarea name="description" rows="2" placeholder="Mục đích giải đấu, đơn vị tài trợ, thông tin ban tổ chức..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="button" onclick="App.closeCreateTournamentModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                        Hủy
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                        <i class="fa-solid fa-check mr-1.5"></i> Tạo Giải Đấu
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: CHỈNH SỬA GIẢI ĐẤU                                     -->
+    <!-- ============================================================== -->
+    <div id="edit-tournament-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+        <div class="glass-panel w-full max-w-2xl rounded-2xl border border-slate-700 p-6 space-y-5 my-8">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Chỉnh Sửa Giải Đấu</h3>
+                </div>
+                <button onclick="App.closeEditTournamentModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form id="edit-tournament-form" onsubmit="App.handleEditTournament(event)" class="space-y-4">
+                <input type="hidden" id="edit-tournament-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Giải Đấu *</label>
+                        <input type="text" id="edit-name" name="name" required class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Bộ Môn</label>
+                        <select id="edit-category" name="category" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                            <option value="Bóng đá">⚽ Bóng đá</option>
+                            <option value="Esports">🎮 Esports</option>
+                            <option value="Cầu lông">🏸 Cầu lông</option>
+                            <option value="Bóng rổ">🏀 Bóng rổ</option>
+                            <option value="Bóng bàn">🏓 Bóng bàn</option>
+                            <option value="Bida">🎱 Bida</option>
+                            <option value="Tennis">🎾 Tennis</option>
+                            <option value="Cờ vua">♟️ Cờ vua</option>
+                            <option value="Khác">🏆 Khác</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Thể Thức</label>
+                        <select id="edit-format" name="format" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                            <option value="0">Loại trực tiếp (Single Elimination)</option>
+                            <option value="1">Vòng tròn tính điểm (Round Robin)</option>
+                            <option value="2">Chia bảng + Knockout</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Số Đội Tối Đa</label>
+                        <input type="number" id="edit-maxTeams" name="maxTeams" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Địa Điểm</label>
+                        <input type="text" id="edit-location" name="location" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Cơ Cấu Giải Thưởng</label>
+                        <input type="text" id="edit-prizePool" name="prizePool" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Quy Chế & Luật Thi Đấu</label>
+                        <textarea id="edit-rules" name="rules" rows="2" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white"></textarea>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Mô Tả Thêm</label>
+                        <textarea id="edit-description" name="description" rows="2" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white"></textarea>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                    <button type="button" onclick="App.closeEditTournamentModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Hủy</button>
+                    <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition">Lưu Thay Đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: NHẬP TỶ SỐ TRẬN ĐẤU (SCOREBOARD)                       -->
+    <!-- ============================================================== -->
+    <div id="score-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-lg rounded-2xl border border-slate-700 p-6 space-y-6 glow-primary">
+            <!-- Header -->
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gamepad text-indigo-400"></i> Cập Nhật Kết Quả Trận Đấu
+                    </h3>
+                    <p id="score-match-title" class="text-xs text-slate-400 mt-0.5"></p>
+                </div>
+                <button onclick="App.closeScoreModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Visual Scoreboard -->
+            <div class="grid grid-cols-2 gap-4 items-center bg-slate-950/60 p-4 rounded-2xl border border-slate-800/80">
+                <!-- Home Team Side -->
+                <div class="text-center space-y-2">
+                    <span id="score-home-logo" class="text-3xl block"></span>
+                    <div id="score-home-name" class="font-bold text-slate-200 text-sm truncate px-1"></div>
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <button type="button" onclick="App.adjustScore('home', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition flex items-center justify-center">-</button>
+                        <input type="number" id="score-home-input" min="0" value="0" class="w-16 py-2 text-center text-2xl font-black bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-indigo-500">
+                        <button type="button" onclick="App.adjustScore('home', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition flex items-center justify-center">+</button>
+                    </div>
+                </div>
+
+                <!-- Away Team Side -->
+                <div class="text-center space-y-2 border-l border-slate-800">
+                    <span id="score-away-logo" class="text-3xl block"></span>
+                    <div id="score-away-name" class="font-bold text-slate-200 text-sm truncate px-1"></div>
+                    <div class="flex items-center justify-center gap-2 mt-2">
+                        <button type="button" onclick="App.adjustScore('away', -1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition flex items-center justify-center">-</button>
+                        <input type="number" id="score-away-input" min="0" value="0" class="w-16 py-2 text-center text-2xl font-black bg-slate-900 border border-slate-700 rounded-xl text-white font-mono focus:outline-none focus:border-indigo-500">
+                        <button type="button" onclick="App.adjustScore('away', 1)" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold transition flex items-center justify-center">+</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes / Details -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Ghi Chú Trận Đấu (Tùy chọn)</label>
+                <input type="text" id="score-notes-input" placeholder="Ví dụ: Penalty 4-2, Thắng set 3 (21-19), Lội ngược dòng..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="App.closeScoreModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                    Đóng
+                </button>
+                <button onclick="App.handleSaveScore()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30 flex items-center gap-1.5">
+                    <i class="fa-solid fa-check"></i> Lưu & Cập Nhật Nhánh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: XEM CHI TIẾT TRẬN ĐẤU (CHO NGƯỜI XEM)                  -->
+    <!-- ============================================================== -->
+    <div id="match-view-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md hidden">
+        <div class="glass-panel w-full max-w-md rounded-2xl border border-slate-700 p-6 space-y-5">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-cyan-400"></i> Thông Tin Trận Đấu
+                </h3>
+                <button onclick="document.getElementById('match-view-modal').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="text-center pb-2">
+                <span id="view-match-round" class="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider"></span>
+            </div>
+
+            <!-- Match Score Visual -->
+            <div class="flex items-center justify-around bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                <div class="text-center space-y-1 max-w-[120px]">
+                    <span id="view-match-home-logo" class="text-3xl block"></span>
+                    <div id="view-match-home-name" class="font-bold text-xs truncate"></div>
+                </div>
+                <div class="flex items-center gap-2 font-mono text-3xl font-black text-indigo-300">
+                    <span id="view-match-home-score">-</span>
+                    <span class="text-slate-600 text-xl">:</span>
+                    <span id="view-match-away-score">-</span>
+                </div>
+                <div class="text-center space-y-1 max-w-[120px]">
+                    <span id="view-match-away-logo" class="text-3xl block"></span>
+                    <div id="view-match-away-name" class="font-bold text-xs truncate"></div>
+                </div>
+            </div>
+
+            <div id="view-match-notes-box" class="p-3 bg-slate-900 rounded-xl text-xs text-slate-300 flex items-center gap-2">
+                <i class="fa-solid fa-note-sticky text-amber-400"></i>
+                <span id="view-match-notes">Chưa có ghi chú</span>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button onclick="document.getElementById('match-view-modal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: THÊM ĐỘI MỚI (ĐƠN LẺ & NHẬP HÀNG LOẠT)                 -->
+    <!-- ============================================================== -->
+    <div id="add-team-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm hidden overflow-y-auto">
+        <div class="glass-panel w-full max-w-lg rounded-2xl border border-slate-700 p-6 space-y-5 my-8">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-600/20 text-indigo-400 flex items-center justify-center">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-white">Thêm Đội / Tuyển Thủ</h3>
+                </div>
+                <button onclick="App.closeAddTeamModal()" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Tabs: Đơn lẻ vs Hàng loạt -->
+            <div class="flex border-b border-slate-800">
+                <button type="button" onclick="document.getElementById('add-single-team-pane').classList.remove('hidden'); document.getElementById('add-bulk-teams-pane').classList.add('hidden');" class="flex-1 pb-2 text-xs font-bold text-indigo-400 border-b-2 border-indigo-500">
+                    <i class="fa-solid fa-user mr-1"></i> Thêm Từng Đội
+                </button>
+                <button type="button" onclick="document.getElementById('add-single-team-pane').classList.add('hidden'); document.getElementById('add-bulk-teams-pane').classList.remove('hidden');" class="flex-1 pb-2 text-xs font-semibold text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-list mr-1"></i> Nhập Hàng Loạt
+                </button>
+            </div>
+
+            <!-- Pane 1: Single Team Form -->
+            <div id="add-single-team-pane">
+                <form id="add-single-team-form" onsubmit="App.handleAddSingleTeam(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Đội / Tuyển Thủ *</label>
+                        <input type="text" name="name" required placeholder="Ví dụ: Chiến Binh Rồng FC" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Tên Viết Tắt (3 ký tự)</label>
+                            <input type="text" name="shortName" maxlength="4" placeholder="CBR" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white uppercase font-mono">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Biểu Tượng Logo</label>
+                            <select name="logo" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white cursor-pointer">
+                                <option value="⚽">⚽ Bóng đá</option>
+                                <option value="🎮">🎮 Gaming</option>
+                                <option value="🔥">🔥 Ngọn lửa</option>
+                                <option value="⚡">⚡ Sấm sét</option>
+                                <option value="🐉">🐉 Rồng thần</option>
+                                <option value="🦅">🦅 Đại bàng</option>
+                                <option value="👑">👑 Vương miện</option>
+                                <option value="🏆">🏆 Chiếc cúp</option>
+                                <option value="🎯">🎯 Mục tiêu</option>
+                                <option value="🏸">🏸 Cầu lông</option>
+                                <option value="🏀">🏀 Bóng rổ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Người Đại Diện / Đội Trưởng</label>
+                            <input type="text" name="contactPerson" placeholder="Nguyễn Văn A" class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 mb-1">Số Điện Thoại</label>
+                            <input type="text" name="contactPhone" placeholder="0988..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Danh Sách Thành Viên (Tùy chọn)</label>
+                        <textarea name="members" rows="2" placeholder="Nhập tên các thành viên, cách nhau bởi dấu phẩy..." class="w-full px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white"></textarea>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 flex justify-end gap-3">
+                        <button type="button" onclick="App.closeAddTeamModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Hủy</button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                            Thêm Đội
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Pane 2: Bulk Teams Input -->
+            <div id="add-bulk-teams-pane" class="hidden space-y-4">
+                <p class="text-xs text-slate-400">
+                    Dán danh sách các đội vào bên dưới, <strong>mỗi dòng là một đội</strong>. Hệ thống sẽ tự động tạo màu áo và logo cho từng đội.
+                </p>
+                <textarea id="bulk-teams-textarea" rows="6" placeholder="Hà Nội Stars&#10;Chiến Binh Đỏ&#10;Rồng Vàng FC&#10;Sấm Sét Club..." class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-indigo-500 text-white font-mono"></textarea>
+                <div class="flex justify-end gap-3 pt-2 border-t border-slate-800">
+                    <button type="button" onclick="App.closeAddTeamModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition">Hủy</button>
+                    <button type="button" onclick="App.handleBulkAddTeams()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                        <i class="fa-solid fa-plus mr-1"></i> Thêm Hàng Loạt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+    <!-- Fullscreen Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="glass-panel p-6 rounded-2xl border border-slate-700 flex flex-col items-center gap-3">
+            <i class="fa-solid fa-spinner fa-spin text-3xl text-indigo-500"></i>
+            <span class="text-sm font-semibold text-slate-200">Đang xử lý dữ liệu...</span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/bracket.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
